@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a77fc0bea73ff042903d9507e4159b9, type: 3}
+  m_Name: Gun Shooting
+  m_EditorClassIdentifier: 
+  id:
+    text: gunShooting
+  item:
+    rid: 1154384983890067725
+  references:
+    version: 2
+    RefIds:
+    - rid: 1154384983890067725
+      type: {class: GunShooting, ns: BaseGame.Abilities, asm: BaseGame.Extras}
+      data:
+        id: -1505223844
+        prefabId: 0

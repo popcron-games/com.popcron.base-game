@@ -6,7 +6,7 @@ using UnityEngine;
 namespace BaseGame
 {
     [CreateAssetMenu]
-    public class PlayerSpawnInfo : IdentifiableAsset
+    public class PlayerSpawnInfo : IdentifiableAsset, IPlayerSpawnInfo
     {
         [SerializeField]
         private ItemAsset? characterAsset;
@@ -20,50 +20,52 @@ namespace BaseGame
         [SerializeField]
         private List<ItemAsset> itemsToLoad = new();
 
-        public SpawnInfo GetSpawnInfo()
+        FixedString IPlayerSpawnInfo.PlayerPrefabName => playerPrefab?.name ?? FixedString.Empty;
+        FixedString IPlayerSpawnInfo.BehaviourTypeName => behaviourType.Type.Name;
+        ID IPlayerSpawnInfo.CharacterPrefabID
         {
-            ID characterPrefabId = ID.Empty;
-            if (characterAsset && characterAsset is not null)
+            get
             {
-                characterPrefabId = characterAsset.ID;
-                Items.AddPrefab(characterAsset);
-            }
-            else
-            {
-                Log.LogErrorFormat("No character asset assigned to {0}", this);
-            }
-
-            List<ID> itemPrefabIds = new();
-            for (int i = 0; i < itemsToLoad.Count; i++)
-            {
-                ItemAsset itemAsset = itemsToLoad[i];
-                IItem prefabItem = itemAsset.PrefabItem;
-                if (prefabItem is not null)
+                if (characterAsset is null || !characterAsset)
                 {
-                    if (prefabItem.ID == ID.Empty)
+                    return ID.Empty;
+                }
+
+                if (characterAsset)
+                {
+                    Prefabs.Add(characterAsset);
+                }
+
+                return characterAsset.ID;
+            }
+        }
+
+        IEnumerable<ID> IPlayerSpawnInfo.ItemPrefabIDs
+        {
+            get
+            {
+                for (int i = 0; i < itemsToLoad.Count; i++)
+                {
+                    ItemAsset itemAsset = itemsToLoad[i];
+                    IItem prefabItem = itemAsset.PrefabItem;
+                    if (prefabItem is not null)
                     {
-                        Log.LogErrorFormat("Item {0} at index {1} does not have an ID", itemAsset, i);
+                        if (prefabItem.ID.IsEmpty)
+                        {
+                            Log.LogErrorFormat("Item {0} at index {1} does not have an ID", itemAsset, i);
+                        }
+                        else
+                        {
+                            Prefabs.Add(itemAsset);
+                            yield return prefabItem.ID;
+                        }
                     }
                     else
                     {
-                        itemPrefabIds.Add(prefabItem.ID);
-                        Items.AddPrefab(itemAsset);
+                        Log.LogErrorFormat("No item assigned to {0} at index {1}", itemAsset, i);
                     }
                 }
-                else
-                {
-                    Log.LogErrorFormat("No item assigned to {0}", itemAsset);
-                }
             }
-
-            FixedString playerPrefabName = playerPrefab?.name ?? FixedString.Empty;
-            FixedString behaviourTypeName = FixedString.Empty;
-            if (behaviourType.Type is Type type)
-            {
-                behaviourTypeName = type.Name;
-            }
-
-            return new SpawnInfo(playerPrefabName, behaviourTypeName, characterPrefabId, itemPrefabIds.ToArray());
         }
     }
 }

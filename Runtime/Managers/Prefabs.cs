@@ -12,69 +12,127 @@ namespace BaseGame
     public class Prefabs : SingletonComponent<Prefabs>, IManager
     {
         [SerializeField]
-        private List<Prefab> prefabs = new();
+        private List<PrefabData> prefabs = new();
 
         async UniTask IManager.Initialize()
         {
             await Addressables.LoadAssetsAsync<Object>("prefabs", (prefab) =>
             {
-                FixedString key = prefab.name;
-                prefabs.Add(new Prefab(key, prefab));
+                Add(prefab);
+            }).ToUniTask();
+
+            await Addressables.LoadAssetsAsync<Object>("items", (prefab) =>
+            {
+                Add(prefab);
             }).ToUniTask();
         }
 
-        public static void Add<T>(FixedString name, T prefab) where T : Object
+        public static bool HasPrefab(ID id)
         {
             Prefabs instance = Instance;
-            foreach (Prefab prefabData in instance.prefabs)
+            foreach (PrefabData prefab in instance.prefabs)
             {
-                if (prefabData.Key == name && prefabData.Asset is T)
+                if (prefab.ID == id)
                 {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public static void Add<T>(T originalPrefab)
+        {
+            ID id;
+            if (originalPrefab is IIdentifiable identifiable)
+            {
+                id = identifiable.ID;
+            }
+            else if (originalPrefab is Object unityPrefab)
+            {
+                id = unityPrefab.name;
+            }
+            else
+            {
+                throw ExceptionBuilder.Format("Prefab {0} does not have an ID", originalPrefab);
+            }
+
+            object? prefab = PrefabData.GetPrefab(originalPrefab);
+            Prefabs instance = Instance;
+            foreach (PrefabData data in instance.prefabs)
+            {
+                if (data.ID == id && data.Prefab == prefab)
+                {
+                    log.LogWarningFormat("Prefab {0} already exists", id);
                     return;
                 }
             }
-            
-            Instance.prefabs.Add(new Prefab(name, prefab));
+
+            instance.prefabs.Add(new PrefabData(id, originalPrefab));
+            log.LogInfoFormat("Added prefab {0} with ID {1}", originalPrefab, id);
         }
 
-        public static void Add<T>(T asset) where T : IdentifiableAsset
+        /// <summary>
+        /// Enumerates through all prefabs of this type.
+        /// </summary>
+        public static IEnumerable<T> GetAll<T>()
         {
-            FixedString key = asset.ID.ToString();
             Prefabs instance = Instance;
-            foreach (Prefab prefabData in instance.prefabs)
+            foreach (PrefabData data in instance.prefabs)
             {
-                if (prefabData.Key == key && prefabData.Asset is T)
+                if (data.Prefab is T t)
                 {
-                    return;
+                    yield return t;
                 }
             }
-            
-            instance.prefabs.Add(new Prefab(key, asset));
         }
 
-        public static GameObject GetGameObjectPrefab(FixedString prefabKey)
+        /// <summary>
+        /// Retrieves the first prefab with this ID.
+        /// Case insensitive.
+        /// </summary>
+        public static T Get<T>(ReadOnlySpan<char> id)
+        {
+            return Get<T>(new ID(id));
+        }
+
+        public static T Get<T>(int hashCode)
+        {
+            return Get<T>(new ID(hashCode));
+        }
+
+        public static T Get<T>(ID id)
         {
             Prefabs instance = Instance;
-            foreach (Prefab prefabData in instance.prefabs)
+            foreach (PrefabData prefab in instance.prefabs)
             {
-                if (prefabData.Key == prefabKey && prefabData.Asset is GameObject)
+                if (prefab.ID == id && prefab.Prefab is T item)
                 {
-                    return (GameObject)prefabData.Asset;
+                    return item;
                 }
             }
 
-            throw ExceptionBuilder.Format("Prefab {0} not found", prefabKey);
+            throw ExceptionBuilder.Format("Could not find identifiable asset with id {0}", id);
         }
 
-        public static bool TryGetGameObjectPrefab(FixedString prefabKey, [MaybeNullWhen(false)] out GameObject prefab)
+        /// <summary>
+        /// Attempts to retrieve the first prefab with this ID.
+        /// Case insensitive.
+        /// </summary>
+        public static bool TryGet<T>(ReadOnlySpan<char> id, [NotNullWhen(true)] out T? prefab)
+        {
+            return TryGet(new ID(id), out prefab);
+        }
+
+        public static bool TryGet<T>(ID id, [NotNullWhen(true)] out T? prefab)
         {
             Prefabs instance = Instance;
-            foreach (Prefab prefabData in instance.prefabs)
+            foreach (PrefabData prefabData in instance.prefabs)
             {
-                if (prefabData.Key == prefabKey && prefabData.Asset is GameObject gameObject)
+                if (prefabData.ID == id && prefabData.Prefab is T asset)
                 {
-                    prefab = gameObject;
-                    return gameObject != null;
+                    prefab = asset;
+                    return true;
                 }
             }
 
@@ -82,64 +140,36 @@ namespace BaseGame
             return false;
         }
 
-        public static T GetIdentifiableAsset<T>(ReadOnlySpan<char> id) where T : IdentifiableAsset
-        {
-            Prefabs instance = Instance;
-            foreach (Prefab prefabData in instance.prefabs)
-            {
-                if (prefabData.Asset is T identifiableAsset && identifiableAsset.ID == id)
-                {
-                    return identifiableAsset;
-                }
-            }
-
-            throw ExceptionBuilder.Format("Could not find identifiable asset with id {0}", id);
-        }
-
-        public static bool TryGetIdentifiableAsset<T>(ReadOnlySpan<char> id, [MaybeNullWhen(false)] out T identifiableAsset) where T : IdentifiableAsset
-        {
-            Prefabs instance = Instance;
-            foreach (Prefab prefabData in instance.prefabs)
-            {
-                if (prefabData.Asset is T identifiable && identifiable.ID == id)
-                {
-                    identifiableAsset = identifiable;
-                    return true;
-                }
-            }
-
-            identifiableAsset = default;
-            return false;
-        }
-
-        public static IEnumerable<T> GetAll<T>()
-        {
-            Prefabs instance = Instance;
-            foreach (Prefab prefabData in instance.prefabs)
-            {
-                if (prefabData.Asset is T t)
-                {
-                    yield return t;
-                }
-            }
-        }
-
         [Serializable]
-        public class Prefab
+        public class PrefabData
         {
-            [SerializeField]
-            private string name;
+            [SerializeField, FixedString]
+            private string id;
 
             [SerializeField]
-            private Object asset;
+            private Object? originalPrefab;
 
-            public FixedString Key => name;
-            public Object Asset => asset;
+            public ID ID => new ID(id);
 
-            public Prefab(FixedString key, Object asset)
+            public object? Prefab => GetPrefab(originalPrefab);
+            public object? OriginalPrefab => originalPrefab;
+
+            public PrefabData(ID id, object originalPrefab)
             {
-                name = key;
-                this.asset = asset;
+                this.id = id.ToString();
+                this.originalPrefab = originalPrefab as Object;
+            }
+
+            public static object? GetPrefab<T>(T prefab)
+            {
+                if (prefab is ItemAsset itemAsset)
+                {
+                    return itemAsset.PrefabItem;
+                }
+                else
+                {
+                    return prefab;
+                }
             }
         }
     }

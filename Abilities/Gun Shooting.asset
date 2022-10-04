@@ -22,5 +22,5 @@ MonoBehaviour:
     - rid: 1154384983890067725
       type: {class: GunShooting, ns: BaseGame.Abilities, asm: BaseGame.Extras}
       data:
-        id: -1505223844
+        id: 1188143696
         prefabId: 0

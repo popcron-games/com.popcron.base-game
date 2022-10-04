@@ -34,7 +34,7 @@ namespace BaseGame
 
             EditorGUI.BeginDisabledGroup(true);
             int hashCode = ID.Parse(text.stringValue);
-            EditorGUI.LabelField(position, hashCode.ToString("X"), hashCodeStyle);
+            EditorGUI.LabelField(position, hashCode.ToString(), hashCodeStyle);
             EditorGUI.EndDisabledGroup();
         }
     }

@@ -70,15 +70,28 @@ namespace BaseGame
                 ReadOnlySpan<char> suffix = ReadOnlySpan<char>.Empty;
                 if (value is FixedString fixedString)
                 {
-                    if (FixedString.HasString(fixedString.GetHashCode()))
+                    if (FixedString.TryGetString(fixedString.GetHashCode(), out string str))
                     {
                         prefix = "\"";
                         suffix = "\"";
-                        text = fixedString.AsSpan();
+                        text = str.AsSpan();
                     }
                     else
                     {
                         text = fixedString.GetHashCode().ToString().AsSpan();
+                    }
+                }
+                else if (value is ID id)
+                {
+                    prefix = "`";
+                    suffix = "`";
+                    if (ID.TryGetString(id.GetHashCode(), out string str))
+                    {
+                        text = str.AsSpan();
+                    }
+                    else
+                    {
+                        text = id.GetHashCode().ToString().AsSpan();
                     }
                 }
                 else if (value is Type type)

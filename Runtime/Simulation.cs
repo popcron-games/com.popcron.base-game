@@ -15,14 +15,11 @@ namespace BaseGame
         
         async UniTask ISimulation.Initialize()
         {
-            Log.LogInfo("Initializing simulation...");
-
             OnInitialize();
             await UniTask.Yield();
-
-            Log.LogInfo("Initializing managers...");
             await InitializeManagers();
 
+            Log.LogInfo("Waiting for my user to spawn...");
             TimeSpan timeout = TimeSpan.FromSeconds(2f);
             await UniTask.WaitUntil(() => User.MyUser is not null).TimeoutWithoutException(timeout);
 
@@ -67,7 +64,7 @@ namespace BaseGame
         
         private async UniTask CreateSingletonManagers(List<IManager> managers)
         {
-            await Addressables.LoadAssetsAsync<GameObject>("prefabs", (prefab) =>
+            await Addressables.LoadAssetsAsync<GameObject>("managers", (prefab) =>
             {
                 if (prefab.TryGetComponent(out IManager manager))
                 {

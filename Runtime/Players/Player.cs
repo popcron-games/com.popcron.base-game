@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 namespace BaseGame
 {
@@ -47,41 +46,44 @@ namespace BaseGame
             return ValueStringBuilder.Format("Player {0}", ID).ToString();
         }
 
-        public void Initialize(User user, SpawnInfo spawnInfo, Spawnpoint? spawnpoint = null)
+        public void Initialize(User user, IPlayerSpawnInfo spawnInfo, Spawnpoint? spawnpoint = null)
         {
             this.user = user;
 
             //player visuals if character is given
-            if (Items.TryCreate(spawnInfo.characterPrefabId, out Character? newCharacter))
+            if (Items.TryCreate(spawnInfo.CharacterPrefabID, out Character? characterPrefab))
             {
-                PlayerVisuals visualsAbility = new(newCharacter, ID.CreateRandom(), spawnpoint);
+                PlayerVisuals visualsAbility = new(spawnInfo.CharacterPrefabID, ID.CreateRandom(), spawnpoint);
                 AddAbility(visualsAbility);
             }
-            else if (spawnInfo.characterPrefabId != ID.Empty)
-            {
-                throw ExceptionBuilder.Format("Character prefab '{0}' not found.", spawnInfo.characterPrefabId);
-            }
-            else
+            else if (spawnInfo.CharacterPrefabID.IsEmpty)
             {
                 throw ExceptionBuilder.Format("Character prefab is empty on player '{0}'.", ID);
             }
+            else
+            {
+                throw ExceptionBuilder.Format("Character prefab '{0}' not found.", spawnInfo.CharacterPrefabID);
+            }
 
             //add items
-            for (int i = 0; i < spawnInfo.itemPrefabIds.Length; i++)
+            int i = 0;
+            foreach (ID itemPrefabId in spawnInfo.ItemPrefabIDs)
             {
-                ref ID itemPrefabId = ref spawnInfo.itemPrefabIds[i];
-                if (Items.TryCreate(itemPrefabId, out IItem? item))
+                if (Prefabs.TryGet(itemPrefabId, out IItem? prefabItem))
                 {
-                    inventory.Add(item);
+                    IItem newItem = Items.Create(prefabItem);
+                    inventory.Add(newItem);
                 }
-                else if (itemPrefabId == ID.Empty)
+                else if (itemPrefabId.IsEmpty)
                 {
                     Log.LogErrorFormat("No item prefab ID assigned to {0} at index {1}", this, i);
                 }
                 else
                 {
-                    Log.LogErrorFormat("Could not add item from prefab with ID {0}", itemPrefabId);
+                    Log.LogErrorFormat("Could not add item with ID {0} at index {1} because the prefab doesnt exist", itemPrefabId, i);
                 }
+
+                i++;
             }
         }
 

@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Diagnostics.CodeAnalysis;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -8,8 +9,8 @@ namespace BaseGame
     [Serializable]
     public class PlayerVisuals : Ability, IUpdateLoop
     {
-        [SerializeField, MustBeAssigned]
-        private Character characterPrefab;
+        [SerializeField, FixedString]
+        private int characterPrefabId;
 
         private CharacterVisuals? visuals;
         private Spawnpoint? spawnpoint;
@@ -18,9 +19,9 @@ namespace BaseGame
         {
             get
             {
-                if (visuals is null)
+                if (visuals is null || !visuals)
                 {
-                    CreateVisuals();
+                    visuals = CreateVisuals();
                 }
 
                 return visuals;
@@ -33,10 +34,16 @@ namespace BaseGame
             set => Visuals.transform.position = value;
         }
 
-        public PlayerVisuals(Character characterPrefab, ID id, Spawnpoint? spawnpoint = null) : base(id)
+        public PlayerVisuals(ID characterPrefabId, ID id, Spawnpoint? spawnpoint = null) : base(id)
         {
-            this.characterPrefab = characterPrefab;
+            this.characterPrefabId = characterPrefabId.GetHashCode();
             this.spawnpoint = spawnpoint;
+        }
+
+        public bool TryGetVisuals([NotNullWhen(true)] out CharacterVisuals? visuals)
+        {
+            visuals = this.visuals;
+            return visuals is not null;
         }
 
         protected override void RemovedFrom(IPlayer player)
@@ -58,7 +65,7 @@ namespace BaseGame
 
         private CharacterVisuals CreateVisuals()
         {
-            CharacterVisuals prefab = characterPrefab.VisualsPrefab;
+            CharacterVisuals prefab = Prefabs.Get<CharacterVisuals>(characterPrefabId);
             Vector3 position = spawnpoint?.Position ?? default;
             Quaternion rotation = spawnpoint?.Rotation ?? default;
             if (Player is Component unityComponent)

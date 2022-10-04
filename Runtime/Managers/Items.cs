@@ -20,29 +20,6 @@ namespace BaseGame
             }).ToUniTask();
         }
 
-        public static void AddPrefab(ItemAsset asset)
-        {
-            Items instance = Instance;
-            if (!instance.assets.Contains(asset))
-            {
-                instance.assets.Add(asset);
-            }
-        }
-
-        public static bool HasPrefab(ID id)
-        {
-            Items instance = Instance;
-            foreach (ItemAsset asset in instance.assets)
-            {
-                if (asset.ID == id)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
         public static IItem GetPrefab(ID id)
         {
             Items instance = Instance;
@@ -111,44 +88,15 @@ namespace BaseGame
             Items instance = Instance;
             foreach (ItemAsset asset in instance.assets)
             {
-                if (asset.ID == prefabId && asset.PrefabItem is T prefabItem)
+                if (asset.ID == prefabId && asset.PrefabItem is T)
                 {
-                    item = Create(prefabItem, newId);
+                    item = (T)Create(asset.PrefabItem, newId);
                     return item is not null;
                 }
             }
 
             item = default;
             return false;
-        }
-
-        public static T Create<T>(T prefab, ID? newId = null)
-        {
-            if (prefab is IItem item)
-            {
-                return (T)Create(item, newId);
-            }
-            else
-            {
-                throw ExceptionBuilder.Format("Prefab item {0} is not an IItem", prefab);
-            }
-        }
-
-        /// <summary>
-        /// Creates a new item instance of the prefab with this ID.
-        /// </summary>
-        public static T Create<T>(ID prefabId, ID? newId = null)
-        {
-            Items instance = Instance;
-            foreach (ItemAsset asset in instance.assets)
-            {
-                if (asset.ID == prefabId && asset.PrefabItem is T item)
-                {
-                    return Create(item, newId);
-                }
-            }
-
-            throw ExceptionBuilder.Format("Could not find prefab item with id {0}", prefabId);
         }
     }
 }

@@ -31,7 +31,7 @@ namespace BaseGame
         private Player? player;
 
         private int userId;
-        private SpawnInfo spawnInfo;
+        private IPlayerSpawnInfo? spawnInfo;
         private UserBehaviour? userBehaviour;
         private Log? log;
 
@@ -70,7 +70,12 @@ namespace BaseGame
             {
                 if (userBehaviour is null)
                 {
-                    Type behaviourType = TypeCache.GetType(spawnInfo.behaviourTypeName);
+                    if (spawnInfo is null)
+                    {
+                        throw ExceptionBuilder.Format("User {0} has no spawn info set", this);
+                    }
+
+                    Type behaviourType = TypeCache.GetType(spawnInfo.BehaviourTypeName);
                     userBehaviour = UserBehaviour.Create(behaviourType, this);
                 }
 
@@ -116,14 +121,12 @@ namespace BaseGame
 
         private Player SpawnPlayer()
         {
-            FixedString playerPrefabName = spawnInfo.playerPrefabName;
-            if (playerPrefabName == FixedString.Empty)
+            if (spawnInfo is null)
             {
-                Log.LogWarningFormat("No player prefab name given for user '{0}', using Player as fallback", ID);
-                playerPrefabName = "Player";
+                throw ExceptionBuilder.Format("User {0} has no spawn info set", this);
             }
-            
-            if (Prefabs.TryGetGameObjectPrefab(playerPrefabName, out GameObject? prefab))
+
+            if (Prefabs.TryGet(spawnInfo.PlayerPrefabName, out GameObject? prefab))
             {
                 Spawnpoint? spawnpoint = GetSpawnpoint();
                 Player player = Instantiate(prefab, transform).GetComponent<Player>();
@@ -132,7 +135,7 @@ namespace BaseGame
             }
             else
             {
-                Log.LogErrorFormat("Could not find prefab for {0}", playerPrefabName);
+                Log.LogErrorFormat("Could not find prefab for {0}", spawnInfo.PlayerPrefabName);
                 return null!;
             }
         }
@@ -158,10 +161,10 @@ namespace BaseGame
             return false;
         }
 
-        public void SetSpawnInfo(SpawnInfo spawnInfo)
+        public void SetSpawnInfo(IPlayerSpawnInfo spawnInfo)
         {
             this.spawnInfo = spawnInfo;
-            Type behaviourType = TypeCache.GetType(spawnInfo.behaviourTypeName);
+            Type behaviourType = TypeCache.GetType(spawnInfo.BehaviourTypeName);
             userBehaviour = UserBehaviour.Create(behaviourType, this);
         }
 

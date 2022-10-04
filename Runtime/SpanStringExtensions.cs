@@ -1,6 +1,5 @@
 #nullable enable
 using System;
-using UnityEngine;
 
 public static class SpanStringExtensions
 {

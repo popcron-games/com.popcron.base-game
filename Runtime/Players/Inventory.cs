@@ -51,15 +51,16 @@ namespace BaseGame
         public void Add<T>(T item) where T : IItem
         {
             PlayerLoop.Add(item);
+
             items.Add(item);
+            log.LogInfoFormat("Added {0} to inventory", item);
+
             item.AddedTo(this);
 
             if (item is IUnityLifecycle unity)
             {
                 unity.OnEnabled();
             }
-
-            log.LogInfoFormat("Added {0} to inventory", item);
         }
 
         public void Remove<T>(T item) where T : IItem
@@ -70,10 +71,11 @@ namespace BaseGame
             }
 
             item.RemovedFrom(this);
+            
             items.Remove(item);
-            PlayerLoop.Remove(item);
-
             log.LogInfoFormat("Removed {0} from inventory", item);
+
+            PlayerLoop.Remove(item);
         }
 
         public void AddRange(IEnumerable<ItemAsset> itemAssets)

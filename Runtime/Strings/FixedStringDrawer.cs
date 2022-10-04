@@ -1,5 +1,4 @@
 #nullable enable
-#define STORE_STRING
 #if UNITY_EDITOR
 using System.Collections.Generic;
 using UnityEditor;
@@ -10,8 +9,6 @@ namespace BaseGame
     [CustomPropertyDrawer(typeof(FixedStringAttribute))]
     public class FixedStringDrawer : PropertyDrawer
     {
-        private static HashSet<int> checkedHashCodes = new();
-        
         private bool editingHashCode = false;
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
@@ -19,7 +16,7 @@ namespace BaseGame
             FixedStringAttribute attribute = (FixedStringAttribute)this.attribute;
             if (property.propertyType == SerializedPropertyType.Integer)
             {
-                DrawProperty(position, property, label);
+                property.intValue = DrawProperty(position, property.intValue, label);
             }
             else if (property.propertyType == SerializedPropertyType.Generic)
             {
@@ -29,58 +26,104 @@ namespace BaseGame
                     SerializedProperty value = property.FindPropertyRelative("m_InternalValue");
                     if (value.propertyType == SerializedPropertyType.Integer)
                     {
-                        DrawProperty(position, value, label);
+                        property.intValue = DrawProperty(position, property.intValue, label);
                     }
                 }
             }
+            else if (property.propertyType == SerializedPropertyType.String)
+            {
+                property.stringValue = DrawProperty(position, property.stringValue, label);
+            }
             else
             {
-                EditorGUI.LabelField(position, label.text, "Use [FixedString] with int fields.");
+                EditorGUI.LabelField(position, label.text, "Use [FixedString] with int or string fields.");
             }
         }
 
-        private void DrawProperty(Rect position, SerializedProperty property, GUIContent label)
+        private string DrawProperty(Rect position, string value, GUIContent label)
         {
-            //check if the hashcode has a string available for it
-            int hashCode = property.intValue;
-            #if STORE_STRING
-            if (!checkedHashCodes.Contains(hashCode) && !FixedString.HasString(property.intValue))
-            {
-                checkedHashCodes.Add(hashCode);
-                if (ID.idStrings.TryGetValue(hashCode, out string text))
-                {
-                    FixedString.SetString(hashCode, text);
-                }
-            }
-            #endif
-            
+            int hashCode = value.GetSpanHashCode();
             float buttonWidth = 20;
             Rect fieldPosition = new Rect(position.x, position.y, position.width - buttonWidth - 2, position.height);
             Rect buttonPosition = new Rect(position.x + position.width - buttonWidth, position.y, buttonWidth, position.height);
 
             if (editingHashCode)
             {
-                EditorGUI.PropertyField(fieldPosition, property, label);
+                hashCode = EditorGUI.IntField(fieldPosition, label, hashCode);
+                if (GUI.Button(buttonPosition, "H"))
+                {
+                    editingHashCode = false;
+                }
+
+                if (FixedString.TryGetString(hashCode, out string text))
+                {
+                    value = text;
+                }
+                else if (ID.TryGetString(hashCode, out text))
+                {
+                    value = text;
+                }
             }
             else
             {
-                EditorGUI.BeginChangeCheck();
-                string text = EditorGUI.TextField(fieldPosition, label, FixedString.ToString(hashCode));
-                if (EditorGUI.EndChangeCheck())
+                value = EditorGUI.TextField(fieldPosition, label, value);
+                hashCode = new FixedString(value).GetHashCode();
+
+                EditorGUI.BeginDisabledGroup(true);
+                EditorGUI.LabelField(fieldPosition, hashCode.ToString(), SerializedIDDrawer.hashCodeStyle);
+                EditorGUI.EndDisabledGroup();
+
+                if (GUI.Button(buttonPosition, "S"))
                 {
-                    property.intValue = new FixedString(text).GetHashCode();
+                    editingHashCode = true;
+                }
+            }
+
+            return value;
+        }
+
+        private int DrawProperty(Rect position, int hashCode, GUIContent label)
+        {
+            float buttonWidth = 20;
+            Rect fieldPosition = new Rect(position.x, position.y, position.width - buttonWidth - 2, position.height);
+            Rect buttonPosition = new Rect(position.x + position.width - buttonWidth, position.y, buttonWidth, position.height);
+
+            if (editingHashCode)
+            {
+                hashCode = EditorGUI.IntField(fieldPosition, label, hashCode);
+                if (GUI.Button(buttonPosition, "H"))
+                {
+                    editingHashCode = false;
+                }
+            }
+            else
+            {
+                if (FixedString.TryGetString(hashCode, out string text))
+                {
+                    text = EditorGUI.TextField(fieldPosition, label, text);
+                    hashCode = FixedString.Parse(text);
+                }
+                else if (ID.TryGetString(hashCode, out text))
+                {
+                    text = EditorGUI.TextField(fieldPosition, label, text);
+                    hashCode = ID.Parse(text);
+                }
+                else
+                {
+                    hashCode = EditorGUI.IntField(fieldPosition, label, hashCode);
                 }
 
                 EditorGUI.BeginDisabledGroup(true);
                 EditorGUI.LabelField(fieldPosition, hashCode.ToString(), SerializedIDDrawer.hashCodeStyle);
                 EditorGUI.EndDisabledGroup();
+
+                if (GUI.Button(buttonPosition, "S"))
+                {
+                    editingHashCode = true;
+                }
             }
 
-            //button to toggle between hash code and fixed string
-            if (GUI.Button(buttonPosition, editingHashCode ? "S" : "H"))
-            {
-                editingHashCode = !editingHashCode;
-            }
+            return hashCode;
         }
     }
 }

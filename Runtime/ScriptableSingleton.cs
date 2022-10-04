@@ -36,28 +36,12 @@ namespace UnityEngine
         private void OnEnable()
         {
             instance = this as T;
-            if (this is IValidate validate)
-            {
-                if (validate.Validate())
-                {
-#if UNITY_EDITOR
-                    UnityEditor.EditorUtility.SetDirty(this);
-#endif
-                }
-            }
+            Validator.PerformValidation(this);
         }
 
         private void OnValidate()
         {
-            if (this is IValidate validate)
-            {
-                if (validate.Validate())
-                {
-#if UNITY_EDITOR
-                    UnityEditor.EditorUtility.SetDirty(this);
-#endif
-                }
-            }
+            Validator.PerformValidation(this);
         }
 
         protected static string GetFilePath()

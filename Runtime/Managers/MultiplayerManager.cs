@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace BaseGame.Managers
 {
-    public class MultiplayerManager : SingletonComponent<MultiplayerManager>, ISingletonManager, IValidate, IDependentUpon
+    public class MultiplayerManager : SingletonComponent<MultiplayerManager>, IManager, IValidate, IDependentUpon
     {
         [SerializeField, HideInInspector]
         private NetworkManager? networkManager;

@@ -47,7 +47,7 @@ namespace BaseGame
             if (!checkedHashCodes.Contains(hashCode) && !FixedString.HasString(property.intValue))
             {
                 checkedHashCodes.Add(hashCode);
-                if (ID.idToName.TryGetValue(hashCode, out string text))
+                if (ID.idStrings.TryGetValue(hashCode, out string text))
                 {
                     FixedString.SetString(hashCode, text);
                 }

@@ -9,7 +9,7 @@ using Object = UnityEngine.Object;
 
 namespace BaseGame
 {
-    public class Prefabs : SingletonComponent<Prefabs>, ISingletonManager
+    public class Prefabs : SingletonComponent<Prefabs>, IManager
     {
         [SerializeField]
         private List<Prefab> prefabs = new();
@@ -21,6 +21,35 @@ namespace BaseGame
                 FixedString key = prefab.name;
                 prefabs.Add(new Prefab(key, prefab));
             }).ToUniTask();
+        }
+
+        public static void Add<T>(FixedString name, T prefab) where T : Object
+        {
+            Prefabs instance = Instance;
+            foreach (Prefab prefabData in instance.prefabs)
+            {
+                if (prefabData.Key == name && prefabData.Asset is T)
+                {
+                    return;
+                }
+            }
+            
+            Instance.prefabs.Add(new Prefab(name, prefab));
+        }
+
+        public static void Add<T>(T asset) where T : IdentifiableAsset
+        {
+            FixedString key = asset.ID.ToString();
+            Prefabs instance = Instance;
+            foreach (Prefab prefabData in instance.prefabs)
+            {
+                if (prefabData.Key == key && prefabData.Asset is T)
+                {
+                    return;
+                }
+            }
+            
+            instance.prefabs.Add(new Prefab(key, asset));
         }
 
         public static GameObject GetGameObjectPrefab(FixedString prefabKey)
@@ -81,6 +110,18 @@ namespace BaseGame
 
             identifiableAsset = default;
             return false;
+        }
+
+        public static IEnumerable<T> GetAll<T>()
+        {
+            Prefabs instance = Instance;
+            foreach (Prefab prefabData in instance.prefabs)
+            {
+                if (prefabData.Asset is T t)
+                {
+                    yield return t;
+                }
+            }
         }
 
         [Serializable]

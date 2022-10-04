@@ -1,4 +1,3 @@
-#define STORE_STRING
 #nullable enable
 using System;
 using System.Collections.Generic;
@@ -8,20 +7,28 @@ namespace BaseGame
 {
     public readonly struct ID : IEquatable<ID>, INetworkSerializeByMemcpy
     {
-#if STORE_STRING
-        public static readonly Dictionary<int, string> idToName = new();
-#endif
+        public static Dictionary<int, string> idStrings = new();
 
         public static readonly ID Empty = new ID(0);
 
         private readonly int id;
 
+        public ID(string text)
+        {
+            this.id = Parse(text);
+            if (text.Length > 0)
+            {
+                idStrings[id] = text;
+            }
+        }
+
         public ID(ReadOnlySpan<char> text)
         {
             this.id = Parse(text);
-#if STORE_STRING
-            idToName[this.id] = text.ToString();
-#endif
+            if (text.Length > 0)
+            {
+                idStrings[id] = text.ToString();
+            }
         }
 
         public ID(int id)
@@ -36,31 +43,38 @@ namespace BaseGame
 
         public override readonly string ToString()
         {
-#if STORE_STRING
-            if (idToName.TryGetValue(id, out var name))
+            if (idStrings.TryGetValue(id, out string? text))
             {
-                return name;
+                return text;
             }
-#endif
-
-            return id.ToString("X");
+            else
+            {
+                return id.ToString("X");
+            }
         }
 
         public static int Parse(ReadOnlySpan<char> text)
         {
             unchecked
             {
+                //try to read as hex first
                 IFormatProvider provider = System.Globalization.CultureInfo.InvariantCulture;
                 if (int.TryParse(text, System.Globalization.NumberStyles.HexNumber, provider, out int hex))
                 {
                     return hex;
                 }
 
+                //read case insensitive hash code
                 int length = text.Length;
                 int hash = length;
                 for (int i = 0; i < length; i++)
                 {
                     hash = (hash * 31) ^ char.ToLowerInvariant(text[i]);
+                }
+
+                if (!idStrings.ContainsKey(hash))
+                {
+                    idStrings[hash] = text.ToString();
                 }
 
                 return hash;
@@ -70,15 +84,9 @@ namespace BaseGame
         public static ID CreateRandom()
         {
             Random rng = new();
-            return rng.Next();
+            return new ID(rng.Next());
         }
 
-        public static implicit operator ID(string text) => new(text);
-        public static implicit operator ID(ReadOnlySpan<char> text) => new(text);
-        public static implicit operator ID(int id) => new(id);
-        public static implicit operator int(ID id) => id.id;
-        public static implicit operator ID(ulong id) => new((int)id);
-        public static implicit operator ulong(ID id) => (ulong)id.id;
         public static bool operator ==(ID left, ID right) => left.Equals(right);
         public static bool operator !=(ID left, ID right) => !left.Equals(right);
         public static bool operator ==(ID left, ReadOnlySpan<char> right) => left.Equals(right);

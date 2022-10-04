@@ -59,7 +59,7 @@ namespace BaseGame
         {
             foreach (Connection c in PlayerLoop.GetAll<Connection>())
             {
-                if (c.User == user)
+                if (c.OwnerClientId == user.OwnerClientId)
                 {
                     connection = c;
                     return true;

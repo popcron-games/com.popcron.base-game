@@ -96,15 +96,7 @@ namespace BaseGame
             }
 
             serializedObject.ApplyModifiedProperties();
-
-            if (target is IValidate validate)
-            {
-                if (validate.Validate())
-                {
-                    EditorUtility.SetDirty(target);
-                    serializedObject.ApplyModifiedProperties();
-                }
-            }
+            Validator.PerformValidation(target);
         }
     }
 }

@@ -40,7 +40,7 @@ namespace BaseGame
                 IItem prefabItem = itemAsset.PrefabItem;
                 if (prefabItem is not null)
                 {
-                    if (prefabItem.ID == default)
+                    if (prefabItem.ID == ID.Empty)
                     {
                         Log.LogErrorFormat("Item {0} at index {1} does not have an ID", itemAsset, i);
                     }

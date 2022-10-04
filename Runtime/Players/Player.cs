@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace BaseGame
 {
@@ -51,11 +52,18 @@ namespace BaseGame
             this.user = user;
 
             //player visuals if character is given
-            Character? character = Items.GetPrefab<Character>(spawnInfo.characterPrefabId);
-            if (character is not null)
+            if (Items.TryCreate(spawnInfo.characterPrefabId, out Character? newCharacter))
             {
-                PlayerVisuals visualsAbility = new(character, ID.CreateRandom(), spawnpoint);
+                PlayerVisuals visualsAbility = new(newCharacter, ID.CreateRandom(), spawnpoint);
                 AddAbility(visualsAbility);
+            }
+            else if (spawnInfo.characterPrefabId != ID.Empty)
+            {
+                throw ExceptionBuilder.Format("Character prefab '{0}' not found.", spawnInfo.characterPrefabId);
+            }
+            else
+            {
+                throw ExceptionBuilder.Format("Character prefab is empty on player '{0}'.", ID);
             }
 
             //add items
@@ -66,7 +74,7 @@ namespace BaseGame
                 {
                     inventory.Add(item);
                 }
-                else if (itemPrefabId == default)
+                else if (itemPrefabId == ID.Empty)
                 {
                     Log.LogErrorFormat("No item prefab ID assigned to {0} at index {1}", this, i);
                 }

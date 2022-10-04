@@ -33,14 +33,8 @@ namespace BaseGame
             {
                 serializedObject.ApplyModifiedProperties();
             }
-            
-            if (component is IValidate validate)
-            {
-                if (validate.Validate())
-                {
-                    EditorUtility.SetDirty(component);
-                }
-            }
+
+            Validator.PerformValidation(target);
         }
     }
 }

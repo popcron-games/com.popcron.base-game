@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace BaseGame.Managers
 {
-    public class PlayerManager : SingletonComponent<PlayerManager>, ISingletonManager
+    public class PlayerManager : SingletonComponent<PlayerManager>, IManager
     {
         public static User UserPrefab
         {
@@ -38,6 +38,7 @@ namespace BaseGame.Managers
             User user = Instantiate(prefab);
             user.Initialize();
 
+            //rename the object
             if (ownerClientId is not null)
             {
                 user.name = ValueStringBuilder.Format("User {0}:{1}", user.ID, ownerClientId.Value).ToString();
@@ -47,6 +48,7 @@ namespace BaseGame.Managers
                 user.name = ValueStringBuilder.Format("User {0}", user.ID).ToString();
             }
 
+            //spawn in multiplayer
             NetworkObject networkObject = user.GetComponent<NetworkObject>();
             if (networkObject)
             {

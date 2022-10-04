@@ -9,7 +9,7 @@ namespace BaseGame
         [OnEnable(true)]    
         private static void DoIt()
         {
-            foreach (Type type in TypeCache.GetTypesAssignableFrom<ISingletonManager>())
+            foreach (Type type in TypeCache.GetTypesAssignableFrom<IManager>())
             {
                 //find a prefab that has a component of this type
             }

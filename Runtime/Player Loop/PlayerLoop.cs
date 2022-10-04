@@ -3,11 +3,9 @@ using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
-using System;
 using UnityEngine.LowLevel;
 using static UnityEngine.PlayerLoop.Update;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.Serialization;
 
 namespace BaseGame
 {
@@ -80,13 +78,21 @@ namespace BaseGame
         private static void Start()
         {
             isReady = false;
+            SetPhysicsSimulationMode(SimulationMode.Script);
             _ = BeginAsync();
+        }
+
+        private static void SetPhysicsSimulationMode(SimulationMode mode)
+        {
+            Physics.simulationMode = mode;
+            Physics2D.simulationMode = (SimulationMode2D)(int)mode;
         }
 
         private static async UniTask BeginAsync()
         {
             await InitializeAddressables();
             await Simulation.Initialize();
+            SetPhysicsSimulationMode(SimulationMode.FixedUpdate);
 
             isReady = true;
             new GameHasInitialized().Dispatch();

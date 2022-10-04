@@ -14,7 +14,7 @@ namespace BaseGame
             {
                 if (player is null)
                 {
-                    player = PlayerLoop.Get<IPlayer>(playerId);
+                    player = PlayerLoop.Get<IPlayer>(new ID(playerId));
                 }
 
                 return player;

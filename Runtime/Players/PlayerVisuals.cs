@@ -72,7 +72,7 @@ namespace BaseGame
             }
 
             visuals.Initialize(Player, spawnpoint);
-            visuals.NetworkObject.SpawnWithOwnership(Player.ID);
+            visuals.NetworkObject.SpawnWithOwnership(Player.OwnerClientId);
             return visuals;
         }
     }

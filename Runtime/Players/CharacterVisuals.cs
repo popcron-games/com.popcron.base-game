@@ -51,7 +51,7 @@ namespace BaseGame
             return changed;
         }
 
-        public void Initialize(IPlayer player, Spawnpoint? spawnpoint = null) { }
+        public virtual void Initialize(IPlayer player, Spawnpoint? spawnpoint = null) { }
 
         bool IValidate.Validate()
         {

@@ -30,7 +30,7 @@ namespace BaseGame
 
         public ID ID
         {
-            get => id;
+            get => new ID(id);
             protected set => id = value.GetHashCode();
         }
 
@@ -40,7 +40,7 @@ namespace BaseGame
             {
                 if (prefabId != 0)
                 {
-                    return prefabId;
+                    return new ID(prefabId);
                 }
                 else
                 {

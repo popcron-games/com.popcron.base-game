@@ -36,15 +36,7 @@ namespace BaseGame
 
         protected override sealed void OnValidate()
         {
-            if (this is IValidate validate)
-            {
-                if (validate.Validate())
-                {
-#if UNITY_EDITOR
-                    UnityEditor.EditorUtility.SetDirty(this);
-#endif
-                }
-            }
+            Validator.PerformValidation(this);
         }
 
         protected virtual void OnAwake() { }

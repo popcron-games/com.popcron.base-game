@@ -3,6 +3,7 @@ using Cysharp.Threading.Tasks;
 using System.Collections.Generic;
 using UnityEngine.AddressableAssets;
 using UnityEngine;
+using System;
 
 namespace BaseGame
 {
@@ -22,8 +23,18 @@ namespace BaseGame
             Log.LogInfo("Initializing managers...");
             await InitializeManagers();
 
-            await UniTask.WaitUntil(() => myUser is not null);
-            await OnInitialized(myUser!);
+            TimeSpan timeout = TimeSpan.FromSeconds(2f);
+            await UniTask.WaitUntil(() => User.MyUser is not null).TimeoutWithoutException(timeout);
+
+            myUser = User.MyUser;
+            if (myUser is not null)
+            {
+                await OnInitialized(myUser);
+            }
+            else
+            {
+                Log.LogError("Failed to initialize simulation because a user wasnt created.");
+            }
         }
 
         void ISimulation.Update()
@@ -56,18 +67,15 @@ namespace BaseGame
         
         private async UniTask CreateSingletonManagers(List<IManager> managers)
         {
-            await Addressables.LoadAssetsAsync<GameObject>("managers", (prefab) =>
+            await Addressables.LoadAssetsAsync<GameObject>("prefabs", (prefab) =>
             {
-                if (prefab.TryGetComponent(out ISingletonManager manager))
+                if (prefab.TryGetComponent(out IManager manager))
                 {
+                    //add if it doesnt exist yet
                     if (managers.FindIndex(x => x.GetType() == manager.GetType()) == -1)
                     {
                         managers.Add(GameObject.Instantiate(prefab).GetComponent<IManager>());
                     }
-                }
-                else
-                {
-                    Log.LogErrorFormat("Prefab {0} does not have a {1} component", prefab, nameof(ISingletonManager));
                 }
             }).ToUniTask();
         }

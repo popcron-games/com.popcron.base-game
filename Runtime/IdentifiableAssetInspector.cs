@@ -7,13 +7,6 @@ namespace BaseGame
     [CustomEditor(typeof(IdentifiableAsset), true)]
     public class IdentifiableAssetInspector : Editor
     {
-        private IdentifiableAsset? asset;
-
-        private void OnEnable()
-        {
-            asset = target as IdentifiableAsset;
-        }
-
         public override void OnInspectorGUI()
         {
             EditorGUI.BeginChangeCheck();
@@ -23,14 +16,8 @@ namespace BaseGame
             {
                 serializedObject.ApplyModifiedProperties();
             }
-            
-            if (asset is IValidate validate)
-            {
-                if (validate.Validate())
-                {
-                    EditorUtility.SetDirty(asset);
-                }
-            }
+
+            Validator.PerformValidation(target);
         }
     }
 }

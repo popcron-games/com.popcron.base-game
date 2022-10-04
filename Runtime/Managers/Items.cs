@@ -1,5 +1,4 @@
 #nullable enable
-using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using Cysharp.Threading.Tasks;
@@ -8,7 +7,7 @@ using UnityEngine.AddressableAssets;
 
 namespace BaseGame
 {
-    public class Items : SingletonComponent<Items>, ISingletonManager
+    public class Items : SingletonComponent<Items>, IManager
     {
         [SerializeField]
         private List<ItemAsset> assets = new();
@@ -60,16 +59,28 @@ namespace BaseGame
 
         public static T GetPrefab<T>(ID id)
         {
-            Items instance = Instance;
-            foreach (ItemAsset asset in instance.assets)
+            if (TryGetPrefab(id, out T? prefab))
             {
-                if (asset.ID == id && asset.PrefabItem is T item)
-                {
-                    return item;
-                }
+                return prefab;
             }
 
             throw ExceptionBuilder.Format("Could not find prefab item with id {0}", id);
+        }
+
+        public static bool TryGetPrefab<T>(ID id, [NotNullWhen(true)] out T? item)
+        {
+            Items instance = Instance;
+            foreach (ItemAsset asset in instance.assets)
+            {
+                if (asset.ID == id && asset.PrefabItem is T t)
+                {
+                    item = t;
+                    return true;
+                }
+            }
+
+            item = default;
+            return false;
         }
 
         public static IItem Create(IItem prefab, ID? newId = null)
@@ -85,27 +96,48 @@ namespace BaseGame
 
         public static bool TryCreate(ID prefabId, [NotNullWhen(true)] out IItem? item, ID? newId = null)
         {
-            try
+            if (TryGetPrefab(prefabId, out IItem? prefab))
             {
-                item = Create(prefabId, newId);
+                item = Create(prefab, newId);
                 return true;
             }
-            catch (Exception)
-            {
-                item = null;
-                return false;
-            }
+
+            item = default;
+            return false;
         }
 
-        public static T Create<T>(T prefab, ID? newId = null) where T : IItem
+        public static bool TryCreate<T>(ID prefabId, [NotNullWhen(true)] out T? item, ID? newId = null)
         {
-            return (T)Create((IItem)prefab, newId);
+            Items instance = Instance;
+            foreach (ItemAsset asset in instance.assets)
+            {
+                if (asset.ID == prefabId && asset.PrefabItem is T prefabItem)
+                {
+                    item = Create(prefabItem, newId);
+                    return item is not null;
+                }
+            }
+
+            item = default;
+            return false;
+        }
+
+        public static T Create<T>(T prefab, ID? newId = null)
+        {
+            if (prefab is IItem item)
+            {
+                return (T)Create(item, newId);
+            }
+            else
+            {
+                throw ExceptionBuilder.Format("Prefab item {0} is not an IItem", prefab);
+            }
         }
 
         /// <summary>
         /// Creates a new item instance of the prefab with this ID.
         /// </summary>
-        public static T Create<T>(ID prefabId, ID? newId = null) where T : IItem
+        public static T Create<T>(ID prefabId, ID? newId = null)
         {
             Items instance = Instance;
             foreach (ItemAsset asset in instance.assets)

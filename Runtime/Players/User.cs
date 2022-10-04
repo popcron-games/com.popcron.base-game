@@ -1,11 +1,12 @@
 #nullable enable
 using System;
 using System.Diagnostics.CodeAnalysis;
+using Unity.Netcode;
 using UnityEngine;
 
 namespace BaseGame
 {
-    public class User : MonoBehaviour, IIdentifiable
+    public class User : NetworkBehaviour, IIdentifiable
     {
         private static User? myUser;
 
@@ -32,6 +33,7 @@ namespace BaseGame
         private int userId;
         private SpawnInfo spawnInfo;
         private UserBehaviour? userBehaviour;
+        private Log? log;
 
         public bool IsAlive
         {
@@ -48,26 +50,17 @@ namespace BaseGame
 
         public ID ID => new ID(userId);
         public IPlayer? Player => player;
-        
-        public ulong OwnerClientId
+
+        protected Log Log
         {
             get
             {
-                if (this)
+                if (log is null)
                 {
-                    if (Connection.TryGet(this, out Connection? connection))
-                    {
-                        return connection.OwnerClientId;
-                    }
-                    else
-                    {
-                        throw ExceptionBuilder.Format("User {0} does not have a connection", this);
-                    }
+                    log = new Log(name);
                 }
-                else
-                {
-                    throw ExceptionBuilder.Format("User {0} is null", this);
-                }
+
+                return log;
             }
         }
 
@@ -90,7 +83,17 @@ namespace BaseGame
             userId = ID.CreateRandom().GetHashCode();
         }
 
-        protected sealed override void OnUpdate(float delta)
+        private void OnEnable()
+        {
+            PlayerLoop.Add(this);
+        }
+
+        private void OnDisable()
+        {
+            PlayerLoop.Remove(this);
+        }
+
+        private void Update()
         {
             if (userBehaviour is IUpdateLoop update)
             {
@@ -113,7 +116,14 @@ namespace BaseGame
 
         private Player SpawnPlayer()
         {
-            if (Prefabs.TryGetGameObjectPrefab(spawnInfo.playerPrefabName, out GameObject? prefab))
+            FixedString playerPrefabName = spawnInfo.playerPrefabName;
+            if (playerPrefabName == FixedString.Empty)
+            {
+                Log.LogWarningFormat("No player prefab name given for user '{0}', using Player as fallback", ID);
+                playerPrefabName = "Player";
+            }
+            
+            if (Prefabs.TryGetGameObjectPrefab(playerPrefabName, out GameObject? prefab))
             {
                 Spawnpoint? spawnpoint = GetSpawnpoint();
                 Player player = Instantiate(prefab, transform).GetComponent<Player>();
@@ -122,12 +132,20 @@ namespace BaseGame
             }
             else
             {
-                Log.LogErrorFormat("Could not find prefab for {0}", spawnInfo.playerPrefabName);
+                Log.LogErrorFormat("Could not find prefab for {0}", playerPrefabName);
                 return null!;
             }
         }
 
-        public InputState GetInputState(ReadOnlySpan<char> name) => userBehaviour?.GetInputState(name) ?? InputState.None;
+        public InputState GetInputState(ReadOnlySpan<char> name)
+        {
+            if (TryGetInputState(name, out InputState state))
+            {
+                return state;
+            }
+
+            throw ExceptionBuilder.Format("No input state with name {0} found", name);
+        }
 
         public bool TryGetInputState(ReadOnlySpan<char> name, [MaybeNullWhen(false)] out InputState inputState)
         {
@@ -161,7 +179,7 @@ namespace BaseGame
             {
                 player.DestroySelf();
             }
-            
+
             player = null;
         }
     }

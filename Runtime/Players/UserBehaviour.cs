@@ -19,7 +19,7 @@ namespace BaseGame
             {
                 if (user is null)
                 {
-                    user = PlayerLoop.Get<User>(userId);
+                    user = PlayerLoop.Get<User>(new ID(userId));
                     if (user is null)
                     {
                         //orphan :(
@@ -33,22 +33,12 @@ namespace BaseGame
 
         public UserBehaviour(User user)
         {
-            userId = user.ID;
+            userId = user.ID.GetHashCode();
             this.user = user;
         }
 
         protected virtual void OnUpdate(float delta) { }
         protected virtual void OnUpdate(float delta, IPlayer player) { }
-
-        public InputState GetInputState(ReadOnlySpan<char> name)
-        {
-            if (TryGetInputState(name, out InputState state))
-            {
-                return state;
-            }
-
-            throw ExceptionBuilder.Format("No input state with name {0} found", name);
-        }
 
         public virtual bool TryGetInputState(ReadOnlySpan<char> name, [MaybeNullWhen(false)] out InputState state)
         {

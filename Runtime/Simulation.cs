@@ -1,44 +1,40 @@
-#nullable enable
-using System;
-using System.Collections.Generic;
+﻿#nullable enable
 using Cysharp.Threading.Tasks;
-using UnityEngine;
+using System.Collections.Generic;
 using UnityEngine.AddressableAssets;
+using UnityEngine;
 
 namespace BaseGame
 {
-    public abstract class Simulation
+    public abstract class Simulation : IdentifiableAsset, ISimulation
     {
         public readonly List<IComponent> components = new();
         public readonly List<IUpdateLoop> updateLoopComponents = new();
-
-        private Log? log;
         private User? myUser;
-
-        protected Log Log
+        
+        async UniTask ISimulation.Initialize()
         {
-            get
-            {
-                if (log is null)
-                {
-                    log = new Log(GetType().Name);
-                }
+            Log.LogInfo("Initializing simulation...");
 
-                return log;
-            }
-        }
+            OnInitialize();
+            await UniTask.Yield();
 
-        public async UniTask Initialize()
-        {
+            Log.LogInfo("Initializing managers...");
             await InitializeManagers();
 
-            Log.LogInfo("Finished initializing simulation");
             await UniTask.WaitUntil(() => myUser is not null);
             await OnInitialized(myUser!);
         }
 
-        public virtual void OnQuitting() { }
-        protected abstract UniTask OnInitialized(User myUser);
+        void ISimulation.Update()
+        {
+            float delta = Time.deltaTime;
+            for (int i = updateLoopComponents.Count - 1; i >= 0; i--)
+            {
+                IUpdateLoop component = updateLoopComponents[i];
+                component.OnUpdate(delta);
+            }
+        }
 
         private async UniTask InitializeManagers()
         {
@@ -53,9 +49,11 @@ namespace BaseGame
             foreach (IManager manager in TypeWithDependencies.Sort(managers))
             {
                 await manager.Initialize();
+                new ManagerHasInitialized(manager).Dispatch();
+                Log.LogInfoFormat("Initialized singleton manager {0}", manager);
             }
         }
-
+        
         private async UniTask CreateSingletonManagers(List<IManager> managers)
         {
             await Addressables.LoadAssetsAsync<GameObject>("managers", (prefab) =>
@@ -73,6 +71,10 @@ namespace BaseGame
                 }
             }).ToUniTask();
         }
+
+        protected virtual void OnInitialize() { }
+
+        protected abstract UniTask OnInitialized(User myUser);
 
         public void Add<T>(T obj)
         {
@@ -149,22 +151,8 @@ namespace BaseGame
                     }
                 }
             }
-            
+
             return default;
         }
-
-        public void Update()
-        {
-            float delta = Time.deltaTime;
-            for (int i = updateLoopComponents.Count - 1; i >= 0; i--)
-            {
-                IUpdateLoop component = updateLoopComponents[i];
-                component.OnUpdate(delta);
-            }
-
-            OnUpdate(delta);
-        }
-
-        protected virtual void OnUpdate(float delta) { }
     }
 }

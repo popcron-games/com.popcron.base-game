@@ -34,7 +34,7 @@ namespace BaseGame
                 }
             }
 
-            throw new Exception($"Could not find prefab with key {prefabKey}");
+            throw ExceptionBuilder.Format("Prefab {0} not found", prefabKey);
         }
 
         public static bool TryGetGameObjectPrefab(FixedString prefabKey, [MaybeNullWhen(false)] out GameObject prefab)
@@ -42,10 +42,10 @@ namespace BaseGame
             Prefabs instance = Instance;
             foreach (Prefab prefabData in instance.prefabs)
             {
-                if (prefabData.Key == prefabKey && prefabData.Asset is GameObject)
+                if (prefabData.Key == prefabKey && prefabData.Asset is GameObject gameObject)
                 {
-                    prefab = (GameObject)prefabData.Asset;
-                    return true;
+                    prefab = gameObject;
+                    return gameObject != null;
                 }
             }
 

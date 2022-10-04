@@ -1,5 +1,4 @@
 #nullable enable
-
 using UnityEditor;
 using UnityEngine;
 
@@ -29,8 +28,7 @@ namespace BaseGame
             if (isExpanded)
             {
                 EditorGUI.indentLevel++;
-                Simulation? simulation = PlayerLoop.GetSimulation();
-                if (simulation is not null)
+                if (PlayerLoop.TryGetSimulation(out ISimulation? simulation))
                 {
                     foreach (IComponent obj in simulation.GetAll())
                     {

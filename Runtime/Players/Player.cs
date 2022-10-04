@@ -9,9 +9,6 @@ namespace BaseGame
     public class Player : MonoBehaviour, IPlayer
     {
         [SerializeField]
-        private SerializedID id = new();
-
-        [SerializeField]
         private List<ItemAsset> itemsToLoad = new();
 
         [SerializeField]
@@ -19,9 +16,30 @@ namespace BaseGame
 
         private User? user;
 
-        public ID ID => id.ID;
-        public ulong OwnerClientId => user?.OwnerClientId ?? ulong.MaxValue;
+        public ID ID => User.ID;
+        public ulong OwnerClientId => User.OwnerClientId;
         public IInventory Inventory => inventory;
+        public User User
+        {
+            get
+            {
+                if (user is null || !user)
+                {
+                    foreach (var u in PlayerLoop.GetAll<User>())
+                    {
+                        if (u.Player == (IPlayer)this)
+                        {
+                            user = u;
+                            break;
+                        }
+                    }
+
+                    throw ExceptionBuilder.Format("User not found for player '{0}'", ID);
+                }
+
+                return user;
+            }
+        }
 
         public override string ToString()
         {
@@ -31,7 +49,6 @@ namespace BaseGame
         public void Initialize(User user, SpawnInfo spawnInfo, Spawnpoint? spawnpoint = null)
         {
             this.user = user;
-            id = ID.CreateRandom();
 
             //player visuals if character is given
             Character? character = Items.GetPrefab<Character>(spawnInfo.characterPrefabId);
@@ -84,7 +101,7 @@ namespace BaseGame
         {
             if (user is not null)
             {
-                user.MarkAsDeadServerRpc();
+                user.MakePlayerDead();
             }
             else
             {

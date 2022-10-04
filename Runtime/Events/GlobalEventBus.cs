@@ -8,8 +8,9 @@ namespace BaseGame.Events
 {
     public static class GlobalEventBus<E> where E : IEvent
     {
+        public delegate void EventDelegate(ref E e);
         private static readonly Log log = new Log(nameof(GlobalEventBus<E>));
-        private static readonly List<Action<E>> methodListeners = new();
+        private static readonly List<EventDelegate> methodListeners = new();
         private static readonly List<IStaticListener<E>> staticListeners = new();
 
         static GlobalEventBus()
@@ -18,11 +19,11 @@ namespace BaseGame.Events
             RegisterStaticListeners();
         }
 
-        public static void Dispatch(E e)
+        public static void Dispatch(ref E e)
         {
             for (int i = methodListeners.Count - 1; i >= 0; i--)
             {
-                methodListeners[i](e);
+                methodListeners[i].Invoke(ref e);
             }
 
             for (int i = staticListeners.Count - 1; i >= 0; i--)
@@ -31,7 +32,7 @@ namespace BaseGame.Events
             }
         }
 
-        public static void AddListener(Action<E> callback)
+        public static void AddListener(EventDelegate callback)
         {
             methodListeners.Add(callback);
         }
@@ -57,8 +58,8 @@ namespace BaseGame.Events
                     {
                         if (eventType == typeof(E))
                         {
-                            Action<E> callback = (Action<E>)Delegate.CreateDelegate(typeof(Action<E>), method);
-                            AddListener((Action<E>)callback);
+                            EventDelegate callback = (EventDelegate)Delegate.CreateDelegate(typeof(EventDelegate), method);
+                            AddListener(callback);
                         }
                     }
                     else

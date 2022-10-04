@@ -6,6 +6,8 @@ using UnityEngine.AddressableAssets;
 using System;
 using UnityEngine.LowLevel;
 using static UnityEngine.PlayerLoop.Update;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.Serialization;
 
 namespace BaseGame
 {
@@ -13,10 +15,10 @@ namespace BaseGame
     {
         public static readonly Log Log = new("Player Loop");
 
-        private static Simulation? simulation;
+        private static ISimulation? simulation;
         private static bool isReady;
 
-        public static Simulation Simulation
+        public static ISimulation Simulation
         {
             get
             {
@@ -31,26 +33,20 @@ namespace BaseGame
 
         static PlayerLoop()
         {
-            Application.quitting += OnQuitting;
             InjectPlayerLoop();
         }
 
-        public static Simulation? GetSimulation() => simulation;
+        public static bool TryGetSimulation([NotNullWhen(true)] out ISimulation? simulation)
+        {
+            simulation = PlayerLoop.simulation;
+            return simulation is not null;
+        }
 
         private static void InjectPlayerLoop()
         {
             PlayerLoopSystem current = UnityEngine.LowLevel.PlayerLoop.GetCurrentPlayerLoop();
-            PlayerLoopExtensions.InjectAfter<ScriptRunBehaviourUpdate>(ref current, Update, typeof(Simulation));
+            PlayerLoopExtensions.InjectAfter<ScriptRunBehaviourUpdate>(ref current, Update, typeof(PlayerLoop));
             UnityEngine.LowLevel.PlayerLoop.SetPlayerLoop(current);
-        }
-
-        private static void OnQuitting()
-        {
-            if (simulation is not null)
-            {
-                simulation.OnQuitting();
-                simulation = null;
-            }
         }
 
         private static void Update()
@@ -61,19 +57,16 @@ namespace BaseGame
             }
         }
 
-        private static Simulation LoadSimulation()
+        private static ISimulation LoadSimulation()
         {
             PlayerLoopSettings settings = PlayerLoopSettings.Instance;
-            if (settings.SimulationType is Type simulationType)
-            {
-                Simulation simulation = (Simulation)Activator.CreateInstance(simulationType);
-                Log.LogInfoFormat("Using simulation {0}", simulation);
-                return simulation;
-            }
-            else
-            {
-                throw ExceptionBuilder.Format("No simulation type set in {0}", settings);
-            }
+            Simulation simulationPrefab = settings.SimulationPrefab;
+
+            //perform an identical copy in memory
+            string json = JsonUtility.ToJson(simulationPrefab);
+            object clone = ScriptableObject.CreateInstance(simulationPrefab.GetType());
+            JsonUtility.FromJsonOverwrite(json, clone);
+            return (ISimulation)clone;
         }
 
         public static void Add<T>(T obj) => Simulation.Add(obj);
@@ -104,16 +97,16 @@ namespace BaseGame
             await Addressables.InitializeAsync().ToUniTask();
         }
 
-        private static void OnInitialized(GameHasInitialized testEvent)
+        private static void GameInitialized()
         {
-            Debug.Log("Ready");
+            Log.LogInfo("Game is ready");
         }
 
         public readonly struct OnGameInit : IStaticListener<GameHasInitialized>
         {
             void IStaticListener<GameHasInitialized>.OnEvent(GameHasInitialized e)
             {
-                OnInitialized(e);
+                GameInitialized();
             }
         }
     }

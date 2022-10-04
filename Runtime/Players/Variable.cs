@@ -52,5 +52,6 @@ namespace BaseGame
         }
 
         public static implicit operator Variable<T>(T value) => new(value);
+        public static implicit operator T(Variable<T> variable) => variable.ProcessedValue;
     }
 }

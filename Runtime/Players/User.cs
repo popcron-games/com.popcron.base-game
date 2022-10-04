@@ -1,12 +1,11 @@
 #nullable enable
 using System;
 using System.Diagnostics.CodeAnalysis;
-using Unity.Netcode;
 using UnityEngine;
 
 namespace BaseGame
 {
-    public class User : NetworkBehaviour, IComponent, IIdentifiable
+    public class User : MonoBehaviour, IIdentifiable
     {
         private static User? myUser;
 
@@ -16,13 +15,10 @@ namespace BaseGame
             {
                 if (!myUser || myUser is null)
                 {
-                    foreach (User user in PlayerLoop.GetAll<User>())
+                    Connection? myConnection = Connection.LocalPlayer;
+                    if (myConnection is not null)
                     {
-                        if (user.IsLocalPlayer)
-                        {
-                            myUser = user;
-                            break;
-                        }
+                        myUser = myConnection.User;
                     }
                 }
 
@@ -31,21 +27,49 @@ namespace BaseGame
         }
 
         [SerializeField]
-        private NetworkVariable<bool> isAlive = new();
-
-        [SerializeField]
         private Player? player;
 
-        private Character? character;
-
-        private Log? log;
+        private int userId;
         private SpawnInfo spawnInfo;
-        private bool lastIsAlive;
         private UserBehaviour? userBehaviour;
 
-        public bool IsAlive => isAlive.Value;
-        public ID ID => new ID((int)NetworkObjectId);
+        public bool IsAlive
+        {
+            get
+            {
+                if (player is null || !player)
+                {
+                    return false;
+                }
+
+                return true;
+            }
+        }
+
+        public ID ID => new ID(userId);
         public IPlayer? Player => player;
+        
+        public ulong OwnerClientId
+        {
+            get
+            {
+                if (this)
+                {
+                    if (Connection.TryGet(this, out Connection? connection))
+                    {
+                        return connection.OwnerClientId;
+                    }
+                    else
+                    {
+                        throw ExceptionBuilder.Format("User {0} does not have a connection", this);
+                    }
+                }
+                else
+                {
+                    throw ExceptionBuilder.Format("User {0} is null", this);
+                }
+            }
+        }
 
         public UserBehaviour Behaviour
         {
@@ -61,61 +85,13 @@ namespace BaseGame
             }
         }
 
-        protected Log Log
+        public void Initialize()
         {
-            get
-            {
-                if (log is null)
-                {
-                    log = new Log(ValueStringBuilder.Format("User {0}", OwnerClientId));
-                }
-
-                return log;
-            }
+            userId = ID.CreateRandom().GetHashCode();
         }
 
-        private void OnEnable()
+        protected sealed override void OnUpdate(float delta)
         {
-            PlayerLoop.Add(this);
-        }
-
-        private void OnDisable()
-        {
-            PlayerLoop.Remove(this);
-        }
-
-        private void OnApplicationQuit()
-        {
-            isAlive.SetFieldValue("m_InternalValue", false);
-        }
-
-        public override void OnNetworkSpawn()
-        {
-            if (IsServer)
-            {
-                isAlive.Value = false;
-            }
-        }
-
-        private void Update()
-        {
-            if (lastIsAlive != isAlive.Value)
-            {
-                lastIsAlive = isAlive.Value;
-                if (lastIsAlive)
-                {
-                    player = SpawnPlayer();
-                }
-                else
-                {
-                    if (player is not null && player)
-                    {
-                        player.DestroySelf();
-                        player = null;
-                    }
-                }
-            }
-
             if (userBehaviour is IUpdateLoop update)
             {
                 update.OnUpdate(Time.deltaTime);
@@ -164,26 +140,29 @@ namespace BaseGame
             return false;
         }
 
-        [ServerRpc(RequireOwnership = false)]
-        public void AskToSpawnPlayerServerRpc(SpawnInfo spawnInfo)
+        public void SetSpawnInfo(SpawnInfo spawnInfo)
         {
             this.spawnInfo = spawnInfo;
-            isAlive.Value = true;
-
             Type behaviourType = TypeCache.GetType(spawnInfo.behaviourTypeName);
             userBehaviour = UserBehaviour.Create(behaviourType, this);
         }
 
-        [ServerRpc(RequireOwnership = false)]
-        public void AskToRespawnServerRpc()
+        public void MakePlayerAlive()
         {
-            isAlive.Value = true;
+            if (player is null || !player)
+            {
+                player = SpawnPlayer();
+            }
         }
 
-        [ServerRpc(RequireOwnership = false)]
-        public void MarkAsDeadServerRpc()
+        public void MakePlayerDead()
         {
-            isAlive.Value = false;
+            if (player is not null && player)
+            {
+                player.DestroySelf();
+            }
+            
+            player = null;
         }
     }
 }

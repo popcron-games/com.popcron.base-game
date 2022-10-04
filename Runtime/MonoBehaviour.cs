@@ -12,7 +12,7 @@ namespace BaseGame
             {
                 if (log is null)
                 {
-                    log = new(GetType().Name);
+                    log = new(name);
                 }
 
                 return log;

@@ -24,7 +24,7 @@ namespace BaseGame
             }
         }
 
-        public FixedString(int hashCode, byte length)
+        public FixedString(int hashCode, byte length = 0)
         {
             this.hashCode = hashCode;
             this.length = length;

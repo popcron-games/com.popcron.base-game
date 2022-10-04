@@ -34,7 +34,7 @@ namespace BaseGame
                 respawnTimer += delta;
                 if (respawnTimer > respawnDuration)
                 {
-                    user.AskToRespawnServerRpc();
+                    user.MakePlayerAlive();
                     respawnTimer = 0;
                 }
             }

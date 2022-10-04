@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Diagnostics.CodeAnalysis;
 using UnityEngine;
 
 namespace BaseGame
@@ -10,24 +11,41 @@ namespace BaseGame
         [SerializeField]
         private string fullName;
 
-        public Type? Type
+        public Type Type
         {
             get
             {
-                if (TypeCache.TryGetType(fullName, out Type? type))
+                if (!string.IsNullOrEmpty(fullName))
                 {
-                    return type;
+                    if (TypeCache.TryGetType(fullName, out Type? type))
+                    {
+                        return type;
+                    }
+                    else
+                    {
+                        throw ExceptionBuilder.Format("Type {0} could not be found", fullName);
+                    }
                 }
                 else
                 {
-                    return null;
+                    throw new NullReferenceException("Serialized type has no backing type name value");
                 }
             }
         }
 
-        public static implicit operator Type(SerializedType serializedType)
+        public bool TryGetType([NotNullWhen(true)] out Type? type)
         {
-            return TypeCache.GetType(serializedType.fullName);
+            if (!string.IsNullOrEmpty(fullName))
+            {
+                return TypeCache.TryGetType(fullName, out type);
+            }
+            else
+            {
+                type = null;
+                return false;
+            }
         }
+
+        public static implicit operator Type(SerializedType serializedType) => serializedType.Type;
     }
 }

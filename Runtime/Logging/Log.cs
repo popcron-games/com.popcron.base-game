@@ -3,8 +3,10 @@ using Cysharp.Text;
 using Cysharp.Threading.Tasks;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using UnityEngine;
+using Debug = UnityEngine.Debug;
 
 namespace BaseGame
 {
@@ -45,6 +47,7 @@ namespace BaseGame
 
         public static async UniTask DumpAllLogs()
         {
+            Stopwatch stopwatch = Stopwatch.StartNew();
             foreach (Log log in logs)
             {
                 string fileName = log.name;
@@ -70,21 +73,9 @@ namespace BaseGame
                     }
                 }
             }
-        }
-    }
 
-    public static class LocalPath
-    {
-#if UNITY_EDITOR
-        private const string PathPrefix = "Assets/Game~/";
-#else
-        private const string PathPrefix = "";
-#endif
-
-        public static string GetFullPath(string path)
-        {
-            string parentFolder = Directory.GetParent(Application.dataPath).FullName;
-            return Path.Combine(parentFolder, PathPrefix, path);
+            stopwatch.Stop();
+            Debug.LogFormat("Dumped all logs in {0}ms", stopwatch.ElapsedMilliseconds);
         }
     }
 }

@@ -1,14 +1,24 @@
 #nullable enable
 using Cysharp.Threading.Tasks;
+using System;
+using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 
 namespace BaseGame.Managers
 {
-    public class MultiplayerManager : MonoBehaviour, ISingletonManager, IValidate
+    public class MultiplayerManager : SingletonComponent<MultiplayerManager>, ISingletonManager, IValidate, IDependentUpon
     {
         [SerializeField, HideInInspector]
         private NetworkManager? networkManager;
+
+        IEnumerable<Type> IDependentUpon.Dependencies
+        {
+            get
+            {
+                yield return typeof(PlayerManager);
+            }
+        }
 
         protected override void OnEnabled()
         {
@@ -68,20 +78,13 @@ namespace BaseGame.Managers
             return changed;
         }
 
-        public static User CreateConnection(ulong clientId)
-        {
-            GameObject userPrefab = NetworkManager.Singleton.NetworkConfig.PlayerPrefab;
-            User user = Instantiate(userPrefab).GetComponent<User>();
-            user.NetworkObject.SpawnWithOwnership(clientId);
-            return user;
-        }
-
         public static void SetUserPrefab(User? userPrefab)
         {
             if (userPrefab != null)
             {
                 NetworkManager.Singleton.NetworkConfig.PlayerPrefab = userPrefab.gameObject;
                 NetworkManager.Singleton.AddNetworkPrefab(userPrefab.gameObject);
+                Instance.Log.LogInfoFormat("Set user prefab to {0}", userPrefab.name);
             }
         }
 

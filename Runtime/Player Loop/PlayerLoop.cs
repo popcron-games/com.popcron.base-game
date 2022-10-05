@@ -105,14 +105,14 @@ namespace BaseGame
             }
 
             isReady = false;
-            SetPhysicsSimulationMode(SimulationMode.Script);
+            SetPhysicsSimulationMode(false);
             _ = BeginAsync(initCancelToken.Token);
         }
 
-        private static void SetPhysicsSimulationMode(SimulationMode mode)
+        private static void SetPhysicsSimulationMode(bool enable)
         {
-            Physics.simulationMode = mode;
-            Physics2D.simulationMode = (SimulationMode2D)(int)mode;
+            Physics.autoSimulation = enable;
+            Physics2D.simulationMode = enable ? SimulationMode2D.FixedUpdate : SimulationMode2D.Script;
         }
 
         private static async UniTask BeginAsync(CancellationToken cancellationToken)
@@ -123,7 +123,7 @@ namespace BaseGame
             await Simulation.Initialize(cancellationToken);
             if (cancellationToken.IsCancellationRequested) return;
 
-            SetPhysicsSimulationMode(SimulationMode.FixedUpdate);
+            SetPhysicsSimulationMode(true);
 
             isReady = true;
             new GameHasInitialized().Dispatch();

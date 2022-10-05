@@ -21,7 +21,7 @@ namespace BaseGame
 
         protected override sealed void Awake() => OnAwake();
         protected override sealed void Start() => OnStart();
-        
+
         protected override sealed void OnEnable()
         {
             PlayerLoop.Add(this);

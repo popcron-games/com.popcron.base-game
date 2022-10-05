@@ -1,29 +1,29 @@
 #nullable enable
 using System;
+using UnityEngine;
 
 namespace BaseGame
 {
-    public readonly struct LogEntry
+    [Serializable]
+    public class LogEntry
     {
-        public const byte ErrorType = 0;
-        public const byte AssertType = 1;
-        public const byte WarningType = 2;
-        public const byte InfoType = 3;
-        public const byte ExceptionType = 4;
+        [SerializeField] private string text;
+        [SerializeField] private EntryType type;
 
-        public readonly FixedString text;
-        public readonly byte type;
+        public string Text => text;
+        public EntryType Type => type;
 
-        public LogEntry(FixedString text, byte type)
+        public LogEntry(ReadOnlySpan<char> text, EntryType type)
         {
-            this.text = text;
+            this.text = text.ToString();
             this.type = type;
         }
 
-        public LogEntry(ReadOnlySpan<char> text, byte type)
+        public enum EntryType : byte
         {
-            this.text = text;
-            this.type = type;
+            Info,
+            Warning,
+            Error
         }
     }
 }

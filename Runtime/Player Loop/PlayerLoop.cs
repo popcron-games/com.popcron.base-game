@@ -6,6 +6,7 @@ using UnityEngine.AddressableAssets;
 using UnityEngine.LowLevel;
 using static UnityEngine.PlayerLoop.Update;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading;
 
 namespace BaseGame
 {
@@ -15,6 +16,7 @@ namespace BaseGame
 
         private static ISimulation? simulation;
         private static bool isReady;
+        private static CancellationTokenSource? initCancelToken;
 
         public static ISimulation Simulation
         {
@@ -32,7 +34,21 @@ namespace BaseGame
         static PlayerLoop()
         {
             InjectPlayerLoop();
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.playModeStateChanged += OnPlayModeChanged;
+#endif
         }
+
+#if UNITY_EDITOR
+        private static void OnPlayModeChanged(UnityEditor.PlayModeStateChange stateChange)
+        {
+            if (stateChange == UnityEditor.PlayModeStateChange.EnteredEditMode)
+            {
+                initCancelToken?.Cancel();
+                simulation = null;
+            }
+        }
+#endif
 
         public static bool TryGetSimulation([NotNullWhen(true)] out ISimulation? simulation)
         {
@@ -77,9 +93,20 @@ namespace BaseGame
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Start()
         {
+            if (initCancelToken is null)
+            {
+                initCancelToken = new CancellationTokenSource();
+            }
+            else
+            {
+                initCancelToken.Cancel();
+                initCancelToken.Dispose();
+                initCancelToken = new CancellationTokenSource();
+            }
+
             isReady = false;
             SetPhysicsSimulationMode(SimulationMode.Script);
-            _ = BeginAsync();
+            _ = BeginAsync(initCancelToken.Token);
         }
 
         private static void SetPhysicsSimulationMode(SimulationMode mode)
@@ -88,19 +115,24 @@ namespace BaseGame
             Physics2D.simulationMode = (SimulationMode2D)(int)mode;
         }
 
-        private static async UniTask BeginAsync()
+        private static async UniTask BeginAsync(CancellationToken cancellationToken)
         {
-            await InitializeAddressables();
-            await Simulation.Initialize();
+            await InitializeAddressables(cancellationToken);
+            if (cancellationToken.IsCancellationRequested) return;
+
+            await Simulation.Initialize(cancellationToken);
+            if (cancellationToken.IsCancellationRequested) return;
+
             SetPhysicsSimulationMode(SimulationMode.FixedUpdate);
 
             isReady = true;
             new GameHasInitialized().Dispatch();
         }
 
-        private static async UniTask InitializeAddressables()
+        private static async UniTask InitializeAddressables(CancellationToken cancellationToken)
         {
-            await Addressables.InitializeAsync().ToUniTask();
+            UniTask initTask = Addressables.InitializeAsync().ToUniTask();
+            await initTask.AttachExternalCancellation(cancellationToken).SuppressCancellationThrow();
         }
 
         private static void GameInitialized()

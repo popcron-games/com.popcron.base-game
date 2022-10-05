@@ -4,33 +4,47 @@ using System.Collections.Generic;
 using UnityEngine.AddressableAssets;
 using UnityEngine;
 using System;
+using System.Threading;
 
 namespace BaseGame
 {
-    public abstract class Simulation : IdentifiableAsset, ISimulation
+    [CreateAssetMenu(menuName = "Base Game/Simulation")]
+    public class Simulation : IdentifiableAsset, ISimulation
     {
         public readonly List<IComponent> components = new();
         public readonly List<IUpdateLoop> updateLoopComponents = new();
-        private User? myUser;
         
-        async UniTask ISimulation.Initialize()
+        private User? myUser;
+
+        async UniTask ISimulation.Initialize(CancellationToken cancellationToken)
         {
             OnInitialize();
-            await UniTask.Yield();
-            await InitializeManagers();
+
+            await UniTask.Yield(cancellationToken).SuppressCancellationThrow();
+            if (cancellationToken.IsCancellationRequested) return;
+
+            await InitializeManagers(cancellationToken);
+            if (cancellationToken.IsCancellationRequested) return;
 
             Log.LogInfo("Waiting for my user to spawn...");
-            TimeSpan timeout = TimeSpan.FromSeconds(2f);
-            await UniTask.WaitUntil(() => User.MyUser is not null).TimeoutWithoutException(timeout);
+            User? myUser;
+            while (true) //safe
+            {
+                myUser = User.MyUser;
+                if (myUser is not null) break;
 
-            myUser = User.MyUser;
-            if (myUser is not null)
+                await UniTask.Yield(cancellationToken).SuppressCancellationThrow();
+                if (cancellationToken.IsCancellationRequested) return;
+            }
+
+            //thank you cysharp/unitask <3
+            try
             {
                 await OnInitialized(myUser);
             }
-            else
+            catch (Exception e)
             {
-                Log.LogError("Failed to initialize simulation because a user wasnt created.");
+                Log.LogError(e);
             }
         }
 
@@ -44,7 +58,7 @@ namespace BaseGame
             }
         }
 
-        private async UniTask InitializeManagers()
+        private async UniTask InitializeManagers(CancellationToken cancellationToken)
         {
             List<IManager> managers = new();
 
@@ -52,17 +66,20 @@ namespace BaseGame
             managers.AddRange(GetAll<IManager>());
 
             //create singleton managers
-            await CreateSingletonManagers(managers);
+            await CreateSingletonManagers(managers, cancellationToken);
+            if (cancellationToken.IsCancellationRequested) return;
 
             foreach (IManager manager in TypeWithDependencies.Sort(managers))
             {
-                await manager.Initialize();
+                await manager.Initialize(cancellationToken);
+                if (cancellationToken.IsCancellationRequested) return;
+                
                 new ManagerHasInitialized(manager).Dispatch();
                 Log.LogInfoFormat("Initialized singleton manager {0}", manager);
             }
         }
         
-        private async UniTask CreateSingletonManagers(List<IManager> managers)
+        private async UniTask CreateSingletonManagers(List<IManager> managers, CancellationToken cancellationToken)
         {
             await Addressables.LoadAssetsAsync<GameObject>("managers", (prefab) =>
             {
@@ -71,15 +88,14 @@ namespace BaseGame
                     //add if it doesnt exist yet
                     if (managers.FindIndex(x => x.GetType() == manager.GetType()) == -1)
                     {
-                        managers.Add(GameObject.Instantiate(prefab).GetComponent<IManager>());
+                        managers.Add(Instantiate(prefab).GetComponent<IManager>());
                     }
                 }
-            }).ToUniTask();
+            }).ToUniTask().AttachExternalCancellation(cancellationToken).SuppressCancellationThrow();
         }
 
         protected virtual void OnInitialize() { }
-
-        protected abstract UniTask OnInitialized(User myUser);
+        protected virtual UniTask OnInitialized(User myUser) => UniTask.CompletedTask;
 
         public void Add<T>(T obj)
         {

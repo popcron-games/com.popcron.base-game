@@ -1,5 +1,6 @@
 ﻿#nullable enable
 using Cysharp.Threading.Tasks;
+using System.Threading;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -66,7 +67,7 @@ namespace BaseGame.Managers
             return user;
         }
 
-        UniTask IManager.Initialize()
+        UniTask IManager.Initialize(CancellationToken cancellationToken)
         {
             return UniTask.CompletedTask;
         }

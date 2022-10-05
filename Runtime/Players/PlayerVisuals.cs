@@ -12,26 +12,64 @@ namespace BaseGame
         [SerializeField, FixedString]
         private int characterPrefabId;
 
-        private CharacterVisuals? visuals;
+        private CharacterVisuals visuals = null!;
         private Spawnpoint? spawnpoint;
 
-        public CharacterVisuals Visuals
-        {
-            get
-            {
-                if (visuals is null || !visuals)
-                {
-                    visuals = CreateVisuals();
-                }
-
-                return visuals;
-            }
-        }
+        public CharacterVisuals Visuals => visuals;
 
         public Vector3 Position
         {
-            get => Visuals.transform.position;
-            set => Visuals.transform.position = value;
+            get => visuals.transform.position;
+            set => visuals.transform.position = value;
+        }
+
+        public Vector3 Velocity
+        {
+            get
+            {
+                if (visuals.Rigidbody is Rigidbody rb)
+                {
+                    return rb.velocity;
+                }
+                else if (visuals.Rigidbody is Rigidbody2D rb2d)
+                {
+                    return rb2d.velocity;
+                }
+                else
+                {
+                    return Vector3.zero;
+                }
+            }
+            set
+            {
+                if (visuals.Rigidbody is Rigidbody rb)
+                {
+                    rb.velocity = value;
+                }
+                else if (visuals.Rigidbody is Rigidbody2D rb2d)
+                {
+                    rb2d.velocity = value;
+                }
+            }
+        }
+
+        public Vector3 PhysicsGravity
+        {
+            get
+            {
+                if (visuals.Rigidbody is Rigidbody rb)
+                {
+                    return rb.useGravity ? Physics.gravity : Vector3.zero;
+                }
+                else if (visuals.Rigidbody is Rigidbody2D rb2d)
+                {
+                    return Physics2D.gravity * rb2d.gravityScale;
+                }
+                else
+                {
+                    return Vector3.zero;
+                }
+            }
         }
 
         public PlayerVisuals(ID characterPrefabId, ID id, Spawnpoint? spawnpoint = null) : base(id)
@@ -43,7 +81,12 @@ namespace BaseGame
         public bool TryGetVisuals([NotNullWhen(true)] out CharacterVisuals? visuals)
         {
             visuals = this.visuals;
-            return visuals is not null;
+            return visuals != null;
+        }
+
+        protected override void AddedTo(IPlayer player)
+        {
+            visuals = CreateVisuals();
         }
 
         protected override void RemovedFrom(IPlayer player)
@@ -65,7 +108,8 @@ namespace BaseGame
 
         private CharacterVisuals CreateVisuals()
         {
-            CharacterVisuals prefab = Prefabs.Get<CharacterVisuals>(characterPrefabId);
+            Character character = Prefabs.Get<Character>(characterPrefabId);
+            CharacterVisuals prefab = character.VisualsPrefab;
             Vector3 position = spawnpoint?.Position ?? default;
             Quaternion rotation = spawnpoint?.Rotation ?? default;
             if (Player is Component unityComponent)

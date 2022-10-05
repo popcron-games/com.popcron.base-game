@@ -51,10 +51,10 @@ namespace BaseGame
             this.user = user;
 
             //player visuals if character is given
-            if (Items.TryCreate(spawnInfo.CharacterPrefabID, out Character? characterPrefab))
+            if (Prefabs.HasPrefab<Character>(spawnInfo.CharacterPrefabID))
             {
                 PlayerVisuals visualsAbility = new(spawnInfo.CharacterPrefabID, ID.CreateRandom(), spawnpoint);
-                AddAbility(visualsAbility);
+                inventory.Add(visualsAbility);
             }
             else if (spawnInfo.CharacterPrefabID.IsEmpty)
             {
@@ -69,9 +69,8 @@ namespace BaseGame
             int i = 0;
             foreach (ID itemPrefabId in spawnInfo.ItemPrefabIDs)
             {
-                if (Prefabs.TryGet(itemPrefabId, out IItem? prefabItem))
+                if (Prefabs.TryCreate(itemPrefabId, out IItem? newItem))
                 {
-                    IItem newItem = Items.Create(prefabItem);
                     inventory.Add(newItem);
                 }
                 else if (itemPrefabId.IsEmpty)
@@ -89,7 +88,11 @@ namespace BaseGame
 
         protected override void OnStart()
         {
-            inventory.AddRange(itemsToLoad);
+            foreach (ItemAsset itemAsset in itemsToLoad)
+            {
+                IItem newItem = itemAsset.Create();
+                inventory.Add(newItem);
+            }
         }
 
         protected override void OnEnabled()
@@ -117,21 +120,6 @@ namespace BaseGame
             {
                 DestroySelf();
             }
-        }
-
-        public IAbility? GetAbility(ID id) => inventory.Get<IAbility>(id);
-        public T GetFirstAbility<T>() => inventory.GetFirst<T>() ?? throw ExceptionBuilder.Format("No ability of type {0} found", typeof(T).Name);
-        public bool HasAbility<T>() => inventory.Contains<T>();
-
-        public bool AddAbility<T>(T ability) where T : IAbility
-        {
-            if (HasAbility<T>())
-            {
-                return false;
-            }
-
-            inventory.Add(ability);
-            return true;
         }
 
         public InputState GetInputState(ReadOnlySpan<char> name)

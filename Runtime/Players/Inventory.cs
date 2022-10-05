@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using UnityEngine;
@@ -71,20 +72,11 @@ namespace BaseGame
             }
 
             item.RemovedFrom(this);
-            
+
             items.Remove(item);
             log.LogInfoFormat("Removed {0} from inventory", item);
 
             PlayerLoop.Remove(item);
-        }
-
-        public void AddRange(IEnumerable<ItemAsset> itemAssets)
-        {
-            foreach (ItemAsset asset in itemAssets)
-            {
-                IItem prefabItem = asset.PrefabItem;
-                Add(BaseGame.Items.Create(prefabItem));
-            }
         }
 
         public bool TryGet(ID id, [NotNullWhen(true)] out IItem? item)
@@ -156,24 +148,6 @@ namespace BaseGame
             return default;
         }
 
-        public bool Contains<T>()
-        {
-            foreach (IItem item in items)
-            {
-                if (item is T)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        public bool Contains(IItem item)
-        {
-            return items.Contains(item);
-        }
-
         public IEnumerable<T> GetAll<T>()
         {
             foreach (IItem item in items)
@@ -183,6 +157,31 @@ namespace BaseGame
                     yield return t;
                 }
             }
+        }
+
+        public bool TryGetFirst<T>([NotNullWhen(true)] out T? item)
+        {
+            foreach (IItem existingItem in items)
+            {
+                if (existingItem is T t)
+                {
+                    item = t;
+                    return true;
+                }
+            }
+
+            item = default;
+            return false;
+        }
+
+        IEnumerator<IItem> IEnumerable<IItem>.GetEnumerator()
+        {
+            return items.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return items.GetEnumerator();
         }
     }
 }

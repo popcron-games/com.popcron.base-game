@@ -2,6 +2,7 @@
 using Cysharp.Threading.Tasks;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -50,7 +51,7 @@ namespace BaseGame.Managers
             response.CreatePlayerObject = true;
         }
 
-        UniTask IManager.Initialize()
+        UniTask IManager.Initialize(CancellationToken cancellationToken)
         {
             if (networkManager != null)
             {

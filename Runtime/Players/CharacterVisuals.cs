@@ -1,5 +1,4 @@
 #nullable enable
-
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
@@ -15,15 +14,92 @@ namespace BaseGame
         private Collider[] colliders = { };
 
         [SerializeField, HideInInspector]
-        private Rigidbody? rb;
-
-        [SerializeField, HideInInspector]
-        private Rigidbody2D? rb2d;
+        private Component? rb;
 
         public IEnumerable<Collider2D> Collider2Ds => colliders2d;
         public IEnumerable<Collider> Colliders => colliders;
-        public Rigidbody? Rigidbody => rb;
-        public Rigidbody2D? Rigidbody2D => rb2d;
+        public Component? Rigidbody => rb;
+
+        public Vector3 Position
+        {
+            get
+            {
+                if (rb is Rigidbody rigidbody)
+                {
+                    return rigidbody.position;
+                }
+                else if (rb is Rigidbody2D rigidbody2d)
+                {
+                    return rigidbody2d.position;
+                }
+                else
+                {
+                    return transform.position;
+                }
+            }
+            set
+            {
+                if (rb is Rigidbody rigidbody)
+                {
+                    rigidbody.position = value;
+                }
+                else if (rb is Rigidbody2D rigidbody2d)
+                {
+                    rigidbody2d.position = value;
+                }
+
+                transform.position = value;
+            }
+        }
+
+        public Vector3 Velocity
+        {
+            get
+            {
+                if (rb is Rigidbody rigidbody)
+                {
+                    return rigidbody.velocity;
+                }
+                else if (rb is Rigidbody2D rigidbody2d)
+                {
+                    return rigidbody2d.velocity;
+                }
+                else
+                {
+                    return Vector3.zero;
+                }
+            }
+            set
+            {
+                if (rb is Rigidbody rigidbody)
+                {
+                    rigidbody.velocity = value;
+                }
+                else if (rb is Rigidbody2D rigidbody2d)
+                {
+                    rigidbody2d.velocity = value;
+                }
+            }
+        }
+
+        public Vector3 PhysicsGravity
+        {
+            get
+            {
+                if (rb is Rigidbody rigidbody)
+                {
+                    return rigidbody.useGravity ? Physics.gravity : Vector3.zero;
+                }
+                else if (rb is Rigidbody2D rigidbody2d)
+                {
+                    return Physics2D.gravity * rigidbody2d.gravityScale;
+                }
+                else
+                {
+                    return Vector3.zero;
+                }
+            }
+        }
 
         private void OnValidate()
         {
@@ -39,13 +115,13 @@ namespace BaseGame
             if (!rb)
             {
                 rb = GetComponent<Rigidbody>();
-                changed = rb is not null;
+                changed = rb != null;
             }
 
-            if (!rb2d)
+            if (!rb)
             {
-                rb2d = GetComponent<Rigidbody2D>();
-                changed = rb2d is not null;
+                rb = GetComponent<Rigidbody2D>();
+                changed = rb != null;
             }
 
             return changed;

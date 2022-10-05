@@ -12,7 +12,7 @@ namespace BaseGame
             {
                 if (user.Player is Player player)
                 {
-                    if (player.TryGetFirstAbility(out PlayerVisuals? visuals))
+                    if (player.TryGetVisuals(out PlayerVisuals? visuals))
                     {
                         transform.position = visuals.Position;
                     }

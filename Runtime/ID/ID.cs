@@ -87,10 +87,7 @@ namespace BaseGame
 
         public static implicit operator ID(string text) => new(text);
         public static implicit operator ID(ReadOnlySpan<char> text) => new(text);
-        public static implicit operator ID(int id) => new(id);
-        public static implicit operator int(ID id) => id.hashCode;
-        public static implicit operator ID(ulong id) => new((int)id);
-        public static implicit operator ulong(ID id) => (ulong)id.hashCode;
+
         public static bool operator ==(ID left, ID right) => left.Equals(right);
         public static bool operator !=(ID left, ID right) => !left.Equals(right);
         public static bool operator ==(ID left, ReadOnlySpan<char> right) => left.Equals(right);

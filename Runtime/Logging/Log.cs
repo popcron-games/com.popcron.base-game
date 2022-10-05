@@ -25,23 +25,30 @@ namespace BaseGame
         }
 
         [HideInCallstack]
+        public void AddEntry<T>(T exception) where T : Exception
+        {
+            entries ??= new();
+            entries.Add(new LogEntry(exception.Message, LogEntry.EntryType.Error));
+        }
+
+        [HideInCallstack]
         public void AddEntry(LogEntry entry)
         {
             entries ??= new();
             entries.Add(entry);
 
             //add to unity's console
-            if (entry.type == LogEntry.ErrorType || entry.type == LogEntry.ExceptionType || entry.type == LogEntry.AssertType)
+            if (entry.Type == LogEntry.EntryType.Error)
             {
-                Debug.LogError(entry.text);
+                Debug.LogError(entry.Text);
             }
-            else if (entry.type == LogEntry.WarningType)
+            else if (entry.Type == LogEntry.EntryType.Warning)
             {
-                Debug.LogWarning(entry.text);
+                Debug.LogWarning(entry.Text);
             }
             else
             {
-                Debug.Log(entry.text);
+                Debug.Log(entry.Text);
             }
         }
 
@@ -66,7 +73,7 @@ namespace BaseGame
                     {
                         foreach (LogEntry entry in log.entries)
                         {
-                            builder.AppendLine(entry.text);
+                            builder.AppendLine(entry.Text);
                         }
                         
                         await File.WriteAllTextAsync(filePath, builder.ToString()).AsUniTask();

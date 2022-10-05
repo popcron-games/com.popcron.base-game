@@ -26,6 +26,16 @@ namespace BaseGame
             }
         }
 
+        public IItem Create(ID? newId = null)
+        {
+            return PrefabItem.Clone(newId);
+        }
+
+        public T Create<T>(ID? newId = null) where T : IItem
+        {
+            return (T)PrefabItem.Clone(newId);
+        }
+
         private void EnsureItemIDIsSet()
         {
             if (item is not null)

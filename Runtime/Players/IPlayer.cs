@@ -10,16 +10,12 @@ namespace BaseGame
         ulong OwnerClientId { get; }
 
         IInventory Inventory { get; }
-        IAbility? GetAbility(ID id);
-        bool HasAbility<T>();
-        T GetFirstAbility<T>();
-        bool AddAbility<T>(T ability) where T : IAbility;
         InputState GetInputState(ReadOnlySpan<char> name);
         bool TryGetInputState(ReadOnlySpan<char> name, [MaybeNullWhen(false)] out InputState state);
 
         IEnumerable<(string, BaseVariable)> IVariables.GetVariables()
         {
-            foreach (IItem item in Inventory.Items)
+            foreach (IItem item in Inventory)
             {
                 if (item is IVariables variables)
                 {

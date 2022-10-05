@@ -8,7 +8,7 @@ namespace BaseGame
     [CreateAssetMenu]
     public class PlayerSpawnInfo : IdentifiableAsset, IPlayerSpawnInfo
     {
-        [SerializeField]
+        [SerializeField, MustBeAssigned]
         private ItemAsset? characterAsset;
 
         [SerializeField]
@@ -26,17 +26,15 @@ namespace BaseGame
         {
             get
             {
-                if (characterAsset is null || !characterAsset)
-                {
-                    return ID.Empty;
-                }
-
-                if (characterAsset)
+                if (characterAsset != null)
                 {
                     Prefabs.Add(characterAsset);
+                    return characterAsset.ID;
                 }
-
-                return characterAsset.ID;
+                else
+                {
+                    throw ExceptionBuilder.Format("Player spawn info {0} does not have a character asset assigned", this);
+                }
             }
         }
 

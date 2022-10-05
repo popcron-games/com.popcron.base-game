@@ -15,12 +15,29 @@ namespace BaseGame
 
         public readonly bool IsEmpty => hashCode == 0;
 
+        public FixedString(string text)
+        {
+            if (!string.IsNullOrEmpty(text))
+            {
+                hashCode = text.GetSpanHashCode();
+                strings[hashCode] = text;
+            }
+            else
+            {
+                hashCode = 0;
+            }
+        }
+
         public FixedString(ReadOnlySpan<char> text)
         {
-            this.hashCode = text.GetSpanHashCode();
             if (!text.IsEmpty)
             {
-                strings[this.hashCode] = text.ToString();
+                hashCode = text.GetSpanHashCode();
+                strings[hashCode] = text.ToString();
+            }
+            else
+            {
+                hashCode = 0;
             }
         }
 
@@ -32,7 +49,7 @@ namespace BaseGame
         public readonly bool Equals(FixedString other) => hashCode == other.hashCode;
         public override readonly bool Equals(object? obj) => obj is FixedString other && Equals(other);
         public override readonly int GetHashCode() => hashCode;
-        
+
         public override readonly string ToString()
         {
             if (strings.TryGetValue(hashCode, out string text))
